@@ -21,12 +21,12 @@ const output = () => {
                 , resources_to_delete   = []
                 , resources_to_replace  = []
                 , resources_unchanged   = [];
-    
+
                 // for each resource changes
                 for(const resource of resource_changes) {
                     const change = resource.change;
                     const address = resource.address;
-                    
+
                     switch(change.actions[0]) {
                         default:
                             break;
@@ -79,7 +79,7 @@ ${details("replace", resources_to_replace, "+")}
 
 const details = (action, resources, operator) => {
     let str = "";
-    
+
     if(resources.length !== 0) {
         str = `
 #### Resources to ${action}\n
@@ -95,7 +95,7 @@ const details = (action, resources, operator) => {
 
         str += "```\n"
     }
-    
+
     return str;
 }
 
@@ -113,12 +113,31 @@ try {
         process.exit(0);
     }
 
-    octokit.rest.issues.createComment({
-        issue_number: context.issue.number,
-        owner: context.repo.owner,
-        repo: context.repo.repo,
-        body: output()
-    });
+    const issue_number = context.payload.pull_request?.number || context.payload.issue?.number
+    const comment_tag_pattern = '<!-- thollander/actions-comment-pull-request -->'
+    let comment;
+    for await (const { data: comments } of octokit.paginate.iterator(octokit.rest.issues.listComments, {
+        ...context.repo,
+        issue_number,
+    })) {
+        comment = comments.find((comment) => comment?.body?.includes(comment_tag_pattern));
+        if (comment) break;
+    }
+    if (comment) {
+        octokit.rest.issues.updateComment({
+            comment_id: comment.id,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: output()
+        });
+    } else {
+        octokit.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: output()
+        });
+    }
 
 } catch (error) {
     core.setFailed(error.message);
