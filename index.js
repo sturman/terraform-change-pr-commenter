@@ -128,14 +128,14 @@ try {
             comment_id: comment.id,
             owner: context.repo.owner,
             repo: context.repo.repo,
-            body: output()
+            body: output() + `\n${comment_tag_pattern}`
         });
     } else {
         octokit.rest.issues.createComment({
             issue_number: context.issue.number,
             owner: context.repo.owner,
             repo: context.repo.repo,
-            body: output()
+            body: output() + `\n${comment_tag_pattern}`
         });
     }
 
